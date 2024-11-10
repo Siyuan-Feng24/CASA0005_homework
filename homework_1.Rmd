@@ -1,49 +1,68 @@
----
-title: "homework"
-output: html_document
-date: "2022-10-06"
----
+# homework1: join non spatial data to spatial data.
+
 ## load library
 
 ```{r}
 library(sf)
-library(tidyverse) 
+library(tidyverse)
 ```
 
 ## Data loading
 
+-   `st_read`: 加载shp
+-   `st_simplify`: 简化shp，dTolerance越大越简化
+-   `read_csv`: 加载csv
+
 ```{r}
+shape <- st_read("data/statsnz-territorial-authority-2018-generalised-SHP/territorial-authority-2018-generalised.shp")
 
-shape <- st_read("data/statsnzterritorial-authority-2018-generalised-SHP/territorial-authority-2018-generalised.shp")
-
-# dTolerance is the distance in which any “wiggles” will be straightened
 shape_simple <- st_simplify(shape, dTolerance = 1000)
 
 employed_2018 <- read_csv("data/stats_edited.csv")
+```
 
+## check data 1 - first few lines
 
-# added test to last row to make character for example
+```{r}
+head(shape_simple)
+head(employed_2018)
+```
+
+## check data 2 - statistical summary
+
+## check data 3 - datatype of attributes
+
+- `st_drop_geometry`: 删除空间数据，保留属性数据，这样才能进行后面的summarise_all
+- `summarise_all(class)`: 返回每一列的type
+
+```{r}
 Datatypelist <- shape_simple %>%
   st_drop_geometry%>% 
-# summarise all only works with .tbl now (not sf) so we drop geometry to check  
+  summarise_all(class)
+
+Datatypelist2 <- employed_2018 %>% 
   summarise_all(class)
 
 Datatypelist
+Datatypelist2
+```
 
+## check data 4 - plot
 
-# Datatypelist2 <- employed_2018_2 %>% 
-#   summarise_all(class)
-# Datatypelist
-
-# alterantively we can summarise the sf
+```{r}
 summary(shape_simple)
 
 shape_simple %>%
   st_geometry()%>%
   plot()
 ```
-## Data manipulation 
-join on the description 
+
+
+
+
+## Data manipulation
+
+join on the description
 
 ```{r}
 # join on the description 
@@ -56,6 +75,7 @@ shape2 <- shape_simple%>%
 ```
 
 Join on the ID by making the column numeric
+
 ```{r}
 
 
@@ -90,5 +110,3 @@ my_map<-shape2 %>%
 
 my_map
 ```
-
-

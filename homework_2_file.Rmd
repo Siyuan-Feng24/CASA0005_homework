@@ -16,18 +16,17 @@ report <- read_csv(here::here("homework_2",
 shape <- st_read(here::here("homework_2",                          "Washington_Counties_with_Natural_Shoreline___washsh_area",                           "Washington_Counties_with_Natural_Shoreline___washsh_area.shp"))
 ```
 
-
 # Task
 
 calculate the average percent of science students (in all) grades per county meeting the required standards
 
 We have:
 
-* Count met standard
-* Count expected to test 
-* test subject
+-   Count met standard
+-   Count expected to test
+-   test subject
 
-Need to filter for science and mutate to work out % that have met 
+Need to filter for science and mutate to work out % that have met
 
 ```{r}
 Datatypelist <- report %>% 
@@ -101,7 +100,6 @@ joined_data <- shape %>%
             county_only_above_below_state,
             by = c("countylabe" = "county"))
 ```
-
 
 Let's map...
 
