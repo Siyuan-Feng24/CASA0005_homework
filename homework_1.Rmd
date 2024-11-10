@@ -1,10 +1,16 @@
 # homework1: join non spatial data to spatial data.
 
-## load library
+-   load library
+-   load data
+-   check data
+-   merge
+
+## Load library
 
 ```{r}
-library(sf)
-library(tidyverse)
+library(sf) # 加载空间数据
+library(tidyverse) # 处理空间数据，tidyverse会自动加载dplyr包
+library(tmap) # 生成地图
 ```
 
 ## Data loading
@@ -21,19 +27,28 @@ shape_simple <- st_simplify(shape, dTolerance = 1000)
 employed_2018 <- read_csv("data/stats_edited.csv")
 ```
 
-## check data 1 - first few lines
+## Check data
+
+first few lines
 
 ```{r}
 head(shape_simple)
 head(employed_2018)
 ```
 
-## check data 2 - statistical summary
+statistical summary
 
-## check data 3 - datatype of attributes
+```{r}
+summary(shape_simple)
+summary(employed_2018)
+```
 
-- `st_drop_geometry`: 删除空间数据，保留属性数据，这样才能进行后面的summarise_all
-- `summarise_all(class)`: 返回每一列的type
+※datatype of attributes
+
+有的数据看起来是数字，实际是character，merge之前需要转换成numeric。
+
+-   `st_drop_geometry`: 删除空间数据，保留属性数据，这样才能进行后面的summarise_all
+-   `summarise_all(class)`: 返回每一列的type
 
 ```{r}
 Datatypelist <- shape_simple %>%
@@ -47,26 +62,21 @@ Datatypelist
 Datatypelist2
 ```
 
-## check data 4 - plot
+plot
+
+-   `st_geometry`: 提取geo数据（即空间坐标）
 
 ```{r}
-summary(shape_simple)
-
 shape_simple %>%
   st_geometry()%>%
   plot()
 ```
 
-
-
-
 ## Data manipulation
 
-join on the description
+M1 - join on the description
 
 ```{r}
-# join on the description 
-
 shape2 <- shape_simple%>%
   merge(.,
         employed_2018,
@@ -74,17 +84,25 @@ shape2 <- shape_simple%>%
         by.y="Area_Description")
 ```
 
-Join on the ID by making the column numeric
+M2 - join on the ID
+
+-   `mutate`: 修改或创建列
+-   `as.numeric()`: 转换为数值型
+-   `<data>$<column> = ……`: 直接修改列。相比mutate简洁，但若需进行其他处理，mutate更方便。
 
 ```{r}
-
-
 shape3 <- shape_simple %>%
   mutate(TA2018_V1_=(as.numeric(TA2018_V1_)))%>%
   merge(.,
-        employed_2018,
+        employed_2018 %>% 
+          mutate(Area_Code=
+                   (as.numeric(Area_Code))),
         by.x="TA2018_V1_", 
         by.y="Area_Code")
+
+# or
+
+#shape$TA2018_V1_ = as.numeric(shape$TA2018_V1_)
 
 #or 
 
@@ -95,18 +113,18 @@ shape3 <- shape_simple %>%
 #         by.x="TA2018_V1_", 
 #         by.y="Area_Code")
 
-# or also 
-#shape$TA2018_V1_ = as.numeric(shape$TA2018_V1_)
+shape3
 ```
 
 ## Data mapping
 
+-   `tmap_mode()`: 绘制模式，plot是静态图，view是动态图
+-   `qtm()`: 快速创建地图
+
 ```{r}
-library(tmap)
-tmap_mode("plot")
-# change the fill to your column name if different
-my_map<-shape2 %>%
-  qtm(.,fill = "Paid employee")
+tmap_mode("plot") 
+my_map <- shape3 %>%
+  qtm(.,fill = "Paid.employee") # 根据某列填充颜色
 
 my_map
 ```
