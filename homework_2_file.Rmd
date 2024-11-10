@@ -1,5 +1,17 @@
 # homework2: calculate and plot
 
+## Task
+
+calculate the average percent of science students (in all) grades per county meeting the required standards
+
+We have:
+
+-   Count met standard
+-   Count expected to test
+-   test subject
+
+Need to filter for science and mutate to work out % that have met
+
 ## Load library
 
 ```{r}
@@ -13,27 +25,16 @@ library(tmap)
 ## Load data
 
 ```{r}
-# read
-report <- read_csv(here::here("data", 
-                              "wk2", 
-                   "Report_Card_Assessment_Data_2018-19_School_Year_20241110.csv"),
-                              na= "NULL")
-
 shape <- st_read(here::here("data", 
                             "wk2",            "Washington_Counties_with_Natural_Shoreline___washsh_area",                           "Washington_Counties_with_Natural_Shoreline___washsh_area.shp"))
+
+report <- read_csv(here::here("data", 
+                              "wk2", 
+ "Report_Card_Assessment_Data_2018-19_School_Year_20241110.csv"),
+                              na= "NULL") # 将原表中的'NULL'都设为na
 ```
 
-# Task
 
-calculate the average percent of science students (in all) grades per county meeting the required standards
-
-We have:
-
--   Count met standard
--   Count expected to test
--   test subject
-
-Need to filter for science and mutate to work out % that have met
 
 ```{r}
 Datatypelist <- report %>% 
