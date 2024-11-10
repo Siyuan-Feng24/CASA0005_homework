@@ -1,19 +1,26 @@
+# homework2: calculate and plot
+
+## Load library
+
 ```{r}
-# packages
 library(tidyverse)
 library(here)
 library(sf)
-library(janitor)
+library(janitor) # 数据清理，如清理列名。
 library(tmap)
 ```
 
+## Load data
+
 ```{r}
 # read
-report <- read_csv(here::here("homework_2", 
-                   "Report_Card_Assessment_Data_2018-19_School_Year.csv"),
+report <- read_csv(here::here("data", 
+                              "wk2", 
+                   "Report_Card_Assessment_Data_2018-19_School_Year_20241110.csv"),
                               na= "NULL")
 
-shape <- st_read(here::here("homework_2",                          "Washington_Counties_with_Natural_Shoreline___washsh_area",                           "Washington_Counties_with_Natural_Shoreline___washsh_area.shp"))
+shape <- st_read(here::here("data", 
+                            "wk2",            "Washington_Counties_with_Natural_Shoreline___washsh_area",                           "Washington_Counties_with_Natural_Shoreline___washsh_area.shp"))
 ```
 
 # Task
