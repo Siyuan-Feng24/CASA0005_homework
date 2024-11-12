@@ -24,6 +24,8 @@ library(tmap)
 
 ## Load data
 
+-   `na='NULL'`: 将原表中的'NULL'都设为na(R读得懂的空值)
+
 ```{r}
 shape <- st_read(here::here("data", 
                             "wk2",            "Washington_Counties_with_Natural_Shoreline___washsh_area",                           "Washington_Counties_with_Natural_Shoreline___washsh_area.shp"))
@@ -31,61 +33,77 @@ shape <- st_read(here::here("data",
 report <- read_csv(here::here("data", 
                               "wk2", 
  "Report_Card_Assessment_Data_2018-19_School_Year_20241110.csv"),
-                              na= "NULL") # 将原表中的'NULL'都设为na
+                              na= "NULL") 
 ```
 
+## check data type (create a new dataframe to show them)
 
+-   `summarise_all(class)`: 返回所有列的type
+-   `pivot_longer(everything())`: 所有列转换成长格式
+-   `names_to='<name>'`: 原始列名放进新列'name'中
+-   `values_to='<name>'`: 原始数据类型放进新列'name'中
 
 ```{r}
 Datatypelist <- report %>% 
-  summarise_all(class) %>%
+  summarise_all(class) %>% 
   pivot_longer(everything(), 
-               names_to="All_variables", 
+               names_to="All_variables",
                values_to="Variable_class")
 
 Datatypelist
+```
 
+## clean and calculate (county)
+
+-   `clean_names()`: 标准列名清理，主要是变小写，加下划线。比如OrgLevel会变成org_level
+-   `select()`: 选择需要的列
+-   `filter(<column> == 'x')`: 筛选
+-   `filter(<column> != 'x')`: 筛选，某列除了x以外所有的
+-   `group_by(<column>)`: 按某列分组
+-   `na.omit()`: 删除包含空值的行
+-   `summarise()`: 计算，和前面的group_by()联用，分组计算，比如分别算每个county的数。结果是每个county对应一行。如果不用summarise，也能计算每个county的数，但是行数不会减少（一个county对应很多行），会有重复行。
+-   `mutate()`: 计算并添加列
+
+```{r}
 county_only <- report %>%
   clean_names() %>%
   select(county, organization_level, test_subject, count_met_standard, 
          count_of_students_expected_to_test, grade_level)%>%
-  # the != means don't select this, but select everything else
-  # i could also filter on where 
   filter(county != "Multiple")%>%
   filter(organization_level == "School")%>%
   filter(test_subject == "Science")%>%
   filter(grade_level=="All Grades")%>%
-    group_by(county)%>%
-  # we need to remove NAs - note we can use this function or do it within the summarise below with the argument na.rm=T they do the same thing!
+  group_by(county)%>%
   na.omit()%>%
-  # na.rm = T means remove missing values from the data
-  # could also use na.omit or filter greater than 0
+  
   summarise(total_county_met_standard=sum(count_met_standard), 
             total_county_to_test=sum(count_of_students_expected_to_test))%>%
   mutate(percent_met_per_county=(total_county_met_standard/total_county_to_test)*100)
-
 ```
 
-We now have the percent that me from the counties and and need to work out what the state average is....
+## calculate for the whole state
+
+-   `pull()`: 从数据框中提取单列。这里只有一列，就直接返回一个value
 
 ```{r}
+state_average <- mean(county_only$percent_met_per_county)
 
-state_average <- county_only%>%
+#or 
+state_average2 <- county_only%>%
   summarise(state_average= mean(percent_met_per_county))%>%
   pull()
-
-# or
-state_average2 <- mean(county_only$percent_met_per_county)
 
 #or
 state_average3 <- county_only%>%
   select(percent_met_per_county)%>%
   summarise(state_average=mean(percent_met_per_county))%>%
   pull()
-
 ```
 
-Ok, now we need to make a column that compares each county value to the state average and some text to say if it is above or below...
+## compare county average to the state average, above or below?
+
+-   `mutate(across(<column>, round, 0))`: 四舍五入，保留0位小数
+-   `case_when(<condition> ~ 'x')`: 条件语句，condition时赋值x
 
 ```{r}
 county_only_above_below_state <- county_only %>%
@@ -95,13 +113,15 @@ county_only_above_below_state <- county_only %>%
                                    difference_to_state>0 ~ "above",
                                    difference_to_state==0 ~ "equal"
                                    ))
-
 ```
 
-Join to our spatial data....
+## Join to spatial data
+
+-   `clean_names(.)`: 点号表示作用于管道前的第一个变量，这里也可以不加。
+-   `left_join()`: join两个数据框，以左为准，把右边有数据的加过来。
+-   `by = c('<column1> = '<column2>')`: 根据这两个列来join。c用来选择多个列。
 
 ```{r}
-
 joined_data <- shape %>% 
   clean_names(.) %>%
   left_join(., 
@@ -109,10 +129,9 @@ joined_data <- shape %>%
             by = c("countylabe" = "county"))
 ```
 
-Let's map...
+## plot
 
 ```{r}
-
 #bbox_county <- joined_data %>%
 #  st_bbox(.) %>% 
 #  tmaptools::read_osm(., type = "osm", zoom = NULL)
@@ -131,6 +150,4 @@ Let's map...
   tm_scale_bar(position = c("left", "bottom")) +
   tm_layout(title = "Counties above or below state avearge for science in all grades", 
             legend.position = c("right", "bottom"))
-
-
 ```
