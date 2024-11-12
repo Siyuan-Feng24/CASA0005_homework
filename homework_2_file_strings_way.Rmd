@@ -13,14 +13,13 @@ library(tmap)
 
 
 # read
-report <- read_csv(here::here("homework_2", 
-                              "Report_Card_Assessment_Data_2018-19_School_Year.csv"),
-                              na= "NULL")
+shape <- st_read(here::here("data", 
+                            "wk2",            "Washington_Counties_with_Natural_Shoreline___washsh_area",                           "Washington_Counties_with_Natural_Shoreline___washsh_area.shp"))
 
-shape <- st_read(here::here("homework_2",
-                            "Washington_Counties_with_Natural_Shoreline___washsh_area",
-                            "Washington_Counties_with_Natural_Shoreline___washsh_area.shp"))
-
+report <- read_csv(here::here("data", 
+                              "wk2", 
+ "Report_Card_Assessment_Data_2018-19_School_Year_20241110.csv"),
+                              na= "NULL") 
 
 county_only <- report %>%
   clean_names()%>%
@@ -30,9 +29,13 @@ county_only <- report %>%
   filter(test_subject == "Science") %>%
   filter(percent_met_standard != "Suppressed: N<10")%>%
   filter(percent_met_standard != "No Students")%>%
-  # negate if true return rows that DO NOT match
-  filter(str_detect(percent_met_standard, "^<", negate = T))%>%
+  
+  # 检查哪些值以 < 开头，negate = T 表示取反，即保留那些不以 < 开头的行。
+  filter(str_detect(percent_met_standard, "^<", negate = T))%>% 
+  
+  # 百分号替换为空值
   mutate(percent_met_standard = str_replace_all(percent_met_standard, pattern = c('%' = "")))%>%
+  
   mutate(percent_met_standard2= as.numeric(percent_met_standard))%>%
   group_by(county)%>%
   summarise(average_met=mean(percent_met_standard2, na.rm=T))
@@ -43,7 +46,6 @@ joined_data <- shape %>%
   left_join(., 
             county_only,
             by = c("countylabe" = "county"))
-
 
 bbox_county <- shape %>%
   st_bbox(.) %>% 
