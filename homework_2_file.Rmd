@@ -12,7 +12,7 @@ We have:
 
 Need to filter for science and mutate to work out % that have met
 
-## Load library
+## 1. Load library
 
 ```{r}
 library(tidyverse)
@@ -23,7 +23,7 @@ library(tmap)
 library(OpenStreetMap)
 ```
 
-## Load data
+## 2. Load data
 
 -   `na='NULL'`: 将原表中的'NULL'都设为na(R读得懂的空值)
 
@@ -37,7 +37,7 @@ report <- read_csv(here::here("data",
                               na= "NULL") 
 ```
 
-## check data type (create a new dataframe to show them)
+## 3. Check data type (create a new dataframe to show them)
 
 -   `summarise_all(class)`: 返回所有列的type
 -   `pivot_longer(everything())`: 所有列转换成长格式
@@ -54,7 +54,7 @@ Datatypelist <- report %>%
 Datatypelist
 ```
 
-## clean and calculate (county)
+## 4. Clean and calculate (county)
 
 -   `clean_names()`: 标准列名清理，主要是变小写，加下划线。比如OrgLevel会变成org_level
 -   `select()`: 选择需要的列
@@ -82,7 +82,7 @@ county_only <- report %>%
   mutate(percent_met_per_county=(total_county_met_standard/total_county_to_test)*100)
 ```
 
-## calculate for the whole state
+## 5. Calculate for the whole state
 
 -   `pull()`: 从数据框中提取单列。这里只有一列，就直接返回一个value
 
@@ -101,7 +101,7 @@ state_average3 <- county_only%>%
   pull()
 ```
 
-## compare county average to the state average, above or below?
+## 6. Compare county average to the state average, above or below?
 
 -   `mutate(across(<column>, round, 0))`: 四舍五入，保留0位小数
 -   `case_when(<condition> ~ 'x')`: 条件语句，condition时赋值x
@@ -116,7 +116,7 @@ county_only_above_below_state <- county_only %>%
                                    ))
 ```
 
-## Join to spatial data
+## 7. Join to spatial data
 
 -   `clean_names(.)`: 点号表示作用于管道前的第一个变量，这里也可以不加。
 -   `left_join()`: join两个数据框，以左为准，把右边有数据的加过来。
@@ -130,25 +130,28 @@ joined_data <- shape %>%
             by = c("countylabe" = "county"))
 ```
 
-## plot
+## 8. Plot
 
 ```{r}
+# 定义绘图边界，取OSM相同区域的图
 bbox_county <- joined_data %>%
   st_bbox(.) %>% 
-  tmaptools::read_osm(., type = "osm", zoom = NULL)
+  tmaptools::read_osm(., type = "osm", zoom = NULL) 
 
+# 基础地图
 tm_shape(bbox_county)+
   tm_rgb()+
 
+# 绘制县级数据图层
   tm_shape(joined_data) + 
-  tm_polygons("above_below", 
-             # style="pretty",
+  tm_polygons("above_below",  # 根据这列设置颜色
+              # style="pretty", # 颜色样式
               palette="Blues",
               midpoint=NA,
-              #title="Number of years",
-              alpha = 0.5) + 
-  tm_compass(position = c("left", "bottom"),type = "arrow") + 
-  tm_scale_bar(position = c("left", "bottom")) +
+              title="Number of years", # 图例标题
+              alpha = 0.5) + # 透明度
+  tm_compass(position = c("left", "bottom"),type = "arrow") + # 指北针
+  tm_scale_bar(position = c("left", "bottom")) + # 比例尺
   tm_layout(title = "Counties above or below state avearge for science in all grades", 
             legend.position = c("right", "bottom"))
 ```
