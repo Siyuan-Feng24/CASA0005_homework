@@ -1,0 +1,96 @@
+# homework4_Inequality map
+
+## Install 'countrycode' package
+
+```{r include=FALSE}
+# install.packages("countrycode")
+```
+
+## Load library
+
+```{r}
+library(here)
+library(tidyverse)
+library(sf)
+library(dplyr)
+library(countrycode)
+library(janitor)
+library(ggplot2)
+```
+
+## Read data
+
+```{r}
+inequal_2010 <- read_csv(here('data', 
+                              'wk4', 
+                              'hdr-data_2010.csv'), 
+                         locale = locale(encoding = 'latin1'), 
+                         na = '', skip = 0)
+inequal_2019 <- read_csv(here('data', 
+                              'wk4',
+                              'hdr-data_2019.csv'), 
+                         locale = locale(encoding = 'latin1'), 
+                         na = '', skip = 0)
+shp_path <- here('data', 
+                 'wk4',
+                 'World_Countries_(Generalized)_2402777631520798174',
+                 'World_Countries_Generalized.shp')
+worldmap <- st_read(shp_path)
+
+# head(inequal_2010)
+# head(worldmap)
+```
+
+## Select useful data from csv.
+
+```{r}
+onlyineq_2010 <- inequal_2010 %>% 
+  filter(index == 'Gender Inequality Index', 
+         indicator == 'Gender Inequality Index (value)') %>% 
+  clean_names()
+
+onlyineq_2019 <- inequal_2019 %>% 
+  filter(index == 'Gender Inequality Index', 
+         indicator == 'Gender Inequality Index (value)') %>% 
+  clean_names()
+```
+
+## Add *difference btw 2010&2019* and *newISO* into csv.
+
+```{r}
+## Calculate difference and add new ISO codes
+onlyineq_2010 <- onlyineq_2010 %>%
+  left_join(onlyineq_2019 %>% 
+              select(country_iso_code, value), 
+            by = 'country_iso_code', 
+            suffix = c('_2010', '_2019')) %>%
+  mutate(difference = round(value_2019 - value_2010, 3)) %>%
+  mutate(new_iso = countrycode(country_iso_code, 
+                               origin = 'iso3c', 
+                               destination = 'iso2c'))
+
+```
+
+## merge csv. and shp by ISO 注意不要根据字符串匹配，人们写文字的习惯不一样（e.g. University of AAA v.s. AAA University
+
+```{r}
+ineqmap <- worldmap %>%
+  left_join(onlyineq_2010 %>% select(newISO, differ), 
+            by = c('ISO' = 'newISO')) 
+head(ineqmap)
+```
+
+## plot
+
+```{r}
+
+
+ggplot(data = ineqmap) +
+  geom_sf(aes(fill = differ), color = "black") +  # fill color by 'differ'
+  scale_fill_gradient(low = "darkblue", high = "lightblue", na.value = "grey50") + 
+  labs(title = "Difference in Gender Inequality Index (2019 - 2010)",
+       fill = "Difference") + 
+  theme_minimal() +  # 使用简约主题
+  theme(plot.title = element_text(hjust = 0.5)) 
+```
+

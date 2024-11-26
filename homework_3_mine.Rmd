@@ -1,0 +1,134 @@
+# homework3: plot
+
+## Load library
+
+```{r}
+library(sf)
+library(here)
+library(terra)
+library(tidyverse)
+library(janitor)
+library(plotly)
+```
+
+## Read data
+
+```{r}
+worldssp1 <- terra::rast(here('data',
+                              'wk3', 
+                              'wc2.1_2.5m_tmax_ACCESS-CM2_ssp126_2081-2100.tif'))
+worldssp5 <- terra::rast(here('data',
+                              'wk3', 
+                              'wc2.1_2.5m_tmax_ACCESS-CM2_ssp585_2081-2100.tif'))
+
+ukrange <- st_read(here('data', 
+                        'wk3', 
+                        'gadm41_GBR_shp', 
+                        'gadm41_GBR_0.shp'))
+worldpoint <- st_read(here('data', 
+                           'wk3', 
+                           'World_Cities', 
+                           'World_Cities.shp'))
+
+# worldssp1 # 返回class：SpatRaster，说明已经是一个stack# names(worldssp1)
+# plot(ukrange)
+# st_crs(ukrange)
+```
+
+## Rename tiff stack
+
+```{r}
+monthname <- c('Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+               'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec')
+names(worldssp1) <- monthname
+names(worldssp5) <- monthname
+```
+
+## Clip and mask
+
+```{r}
+clipssp1 <- ukrange %>% 
+  terra::crop(worldssp1,.)
+clip2ssp1 <- terra::mask(clipssp1, ukrange)
+
+clipssp5 <- ukrange %>% 
+  terra::crop(worldssp5,.) 
+clip2ssp5 <- terra::mask(clipssp5, ukrange)
+```
+
+## Get city point
+
+```{r}
+worldpoint <- worldpoint %>% clean_names() # 列名标准化
+worldpoint <- worldpoint %>% st_transform(crs = st_crs(ukrange)) # 设定同样的CRS。由于不需要进行距离计算啥的，不用转换成投影。
+
+londonpoint <- worldpoint %>% filter(city_name == 'London')
+manchepoint <- worldpoint %>% filter(city_name == 'Manchester')
+```
+
+## Get city temperature data
+
+```{r}
+# put city coords into a dataframe
+cityname <- c('London', 'Manchester')
+city_coords <- data.frame(
+  x = c(st_coordinates(londonpoint)[1], st_coordinates(manchepoint)[1]), 
+  y = c(st_coordinates(londonpoint)[2], st_coordinates(manchepoint)[2])
+)
+row.names(city_coords) <- cityname
+
+# extract temp data via the data frame
+citytempssp1 <- terra::extract(clip2ssp1, city_coords)
+citytempssp5 <- terra::extract(clip2ssp5, city_coords)
+```
+
+## Tibble, add cityname to temp data
+
+```{r}
+citytempssp1 <- citytempssp1 %>% 
+  as_tibble() %>% 
+  add_column(Cityname = cityname, .before = 'Jan')
+citytempssp5 <- citytempssp5 %>% 
+  as_tibble() %>% 
+  add_column(Cityname = cityname, .before = 'Jan')
+```
+
+## Pivot
+
+```{r}
+longcityssp1 <- citytempssp1 %>% 
+  pivot_longer(
+    cols = 3:14, # 需要转换的列
+    names_to = 'Month', # 新列的名
+    values_to = 'Temp' # 新列的值
+  )
+longcityssp5 <- citytempssp5 %>% 
+  pivot_longer(
+    cols = 3:14, # 需要转换的列
+    names_to = 'Month', # 新列的名
+    values_to = 'Temp' # 新列的值
+  )
+```
+
+## Plot
+
+```{r}
+xbinsno <- list(start = 10, end = 30, size = 2.5) # xbin设置
+x <- list(title = 'Temperature') # x轴label
+y <- list(title = 'Frequency')
+
+ihist <- plot_ly(alpha = 0.6) %>%
+  add_histogram(x = longcityssp1$Temp, xbins = xbinsno, name = "SSP1") %>%
+  add_histogram(x = longcityssp5$Temp, xbins = xbinsno, name = "SSP5") %>%
+  layout(
+    barmode = "overlay",
+    xaxis = x,
+    yaxis = y,
+    title = list(
+      text = "Plotly of London Temperature in SSP1 and SSP5",
+      font = list(size = 14),
+      x = 0.5
+    )
+  )
+ihist
+```

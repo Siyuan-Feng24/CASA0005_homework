@@ -1,5 +1,3 @@
-
-
 This approach uses strings to remove the % and make the column numeric...
 
 i didn't calculate the state average, but just mapped the average % of students that met the standard per county.
@@ -69,4 +67,3 @@ tm_shape(bbox_county)+
 
   
 ```
-
